@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Native Plant Study Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #f4f6f3; --card-bg: #ffffff; --text-main: #2c3e2a; 
+            --text-muted: #5e705c; --accent-green: #4a7c59; --border-color: #d3dcd4;
+        }
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: var(--bg-color); color: var(--text-main); display: flex; flex-direction: column; align-items: center; padding: 2rem; margin: 0; }
+        h1 { margin-bottom: 0.5rem; color: var(--accent-green); }
+        .stats { color: var(--text-muted); margin-bottom: 2rem; font-size: 0.9rem; }
+        
+        /* --- DASHBOARD STYLES --- */
+        .dashboard-view { width: 100%; max-width: 800px; display: block; }
+        .dash-section-title { border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem; margin-top: 2rem; font-size: 1.2rem; }
+        .dash-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; margin-top: 1rem; }
+        .dash-btn { background: white; border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem 1rem; text-align: center; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.02); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .dash-btn:hover { border-color: var(--accent-green); transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.05); }
+        .dash-btn .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+        .dash-btn .title { font-weight: bold; color: var(--text-main); }
+        .dash-btn .subtitle { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem; }
+
+        /* --- STUDY MODE STYLES --- */
+        .study-view { width: 100%; display: none; flex-direction: column; align-items: center; }
+        .header-controls { width: 100%; max-width: 500px; display: flex; justify-content: space-between; margin-bottom: 1rem; align-items: center; }
+        .back-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-weight: bold; padding: 0.5rem 0; }
+        .back-btn:hover { color: var(--text-main); text-decoration: underline; }
+
+        .flashcard-container { perspective: 1000px; width: 100%; max-width: 500px; height: 600px; margin-bottom: 1.5rem; }
+        .flashcard { width: 100%; height: 100%; position: relative; transition: transform 0.6s ease-in-out; transform-style: preserve-3d; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,0.08); border-radius: 16px; }
+        .flashcard.is-flipped { transform: rotateY(180deg); }
+        .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; display: flex; flex-direction: column; overflow: hidden; }
+        
+        .card-photo-container { width: 100%; height: 85%; background-color: #e9ece8; position: relative; display: flex; justify-content: center; align-items: center; border-bottom: 1px solid var(--border-color); }
+        .card-photo { width: 100%; height: 100%; object-fit: cover; }
+        .card-text-container { height: 15%; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 0.5rem; text-align: center; }
+        
+        .source-toggle { position: absolute; top: 15px; left: 15px; display: flex; background: rgba(0,0,0,0.5); border-radius: 20px; overflow: hidden; z-index: 10; backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.2); }
+        .source-toggle button { background: transparent; border: none; color: rgba(255,255,255,0.7); padding: 5px 12px; font-size: 0.75rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .source-toggle button.active { background: white; color: var(--text-main); }
+
+        .badge-container { position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; flex-direction: column; align-items: flex-end; z-index: 10; }
+        .badge { background: var(--accent-green); color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .lep-badge { background: #d4a373; }
+
+        .photo-overlay { position: absolute; bottom: 0; left: 0; width: 100%; padding: 10px 15px; display: flex; justify-content: space-between; align-items: flex-end; background: linear-gradient(transparent, rgba(0,0,0,0.8)); color: white; box-sizing: border-box; }
+        .photo-btn { background: rgba(255,255,255,0.2); border: none; color: white; width: 36px; height: 36px; border-radius: 50%; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; cursor: pointer; backdrop-filter: blur(4px); transition: background 0.2s; padding-bottom: 3px; }
+        .photo-btn:hover { background: rgba(255,255,255,0.4); }
+        .photo-info { text-align: center; text-shadow: 1px 1px 3px rgba(0,0,0,0.9); flex-grow: 1; }
+        .photo-counter { font-weight: bold; font-size: 0.95rem; }
+        .photo-attribution { font-size: 0.75rem; color: #ddd; }
+        
+        .card-back { transform: rotateY(180deg); background: #fafbfa; padding: 1.5rem; text-align: left; display: block; overflow-y: auto; }
+        .card-back::-webkit-scrollbar { width: 6px; }
+        .card-back::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        
+        .sci-name { font-size: 1.6rem; font-style: italic; font-weight: bold; margin-bottom: 0.2rem; text-align: center; width: 100%; color: var(--accent-green); }
+        .common-name { font-size: 1.2rem; font-weight: bold; color: var(--text-main); margin-bottom: 1rem; text-align: center; width: 100%; }
+        
+        .enrichment-data { width: 100%; font-size: 0.95rem; line-height: 1.5; color: var(--text-muted); border-top: 1px dashed var(--border-color); padding-top: 1rem; }
+        .trait-section { margin-bottom: 1rem; }
+        .trait-label { color: var(--text-main); font-weight: 600; margin-right: 5px; }
+
+        /* --- EVALUATION CONTROLS --- */
+        .eval-controls { display: flex; gap: 0.5rem; width: 100%; max-width: 500px; }
+        .eval-btn { flex: 1; padding: 0.8rem; border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer; transition: 0.2s; border: none; color: white; display: flex; justify-content: center; align-items: center; gap: 5px; }
+        .btn-missed { background: #d9534f; border: 2px solid #c9302c; }
+        .btn-missed:hover { background: #c9302c; }
+        .btn-gotit { background: var(--accent-green); border: 2px solid #3a6346; }
+        .btn-gotit:hover { background: #3a6346; }
+        
+        /* New Exotic Toggle Button */
+        .btn-exotic { background: #868e96; border: 2px solid #495057; }
+        .btn-exotic:hover { background: #495057; }
+        .btn-exotic.active { background: #f59f00; border-color: #e67700; color: white; }
+        .btn-exotic.active:hover { background: #e67700; }
+    </style>
+</head>
+<body>
+
+    <h1>Ecotone Dashboard</h1>
+    <div class="stats" id="total-stats">Loading database...</div>
+
+    <div class="dashboard-view" id="dashboard-view">
+        <div class="dash-section-title">Core Study Modes</div>
+        <div class="dash-grid">
+            <div class="dash-btn" onclick="startStudy('all')">
+                <span class="icon">📚</span>
+                <span class="title">Study All Plants</span>
+                <span class="subtitle" id="count-all">0 cards</span>
+            </div>
+            <div class="dash-btn" onclick="startStudy('shuffle')">
+                <span class="icon">🔀</span>
+                <span class="title">Shuffle Deck</span>
+                <span class="subtitle">Randomized order</span>
+            </div>
+            <div class="dash-btn" onclick="startStudy('missed')">
+                <span class="icon">🎯</span>
+                <span class="title">Review Missed</span>
+                <span class="subtitle" id="count-missed">0 cards</span>
+            </div>
+            <div class="dash-btn" onclick="startStudy('new')">
+                <span class="icon">✨</span>
+                <span class="title">Recent Catch</span>
+                <span class="subtitle">Added recently</span>
+            </div>
+            <div class="dash-btn" onclick="startStudy('exotic')">
+                <span class="icon">🌴</span>
+                <span class="title">Exotic Collection</span>
+                <span class="subtitle" id="count-exotic">0 flagged</span>
+            </div>
+        </div>
+
+        <div class="dash-section-title">Study by Batches (100)</div>
+        <div class="dash-grid" id="batch-grid">
+            </div>
+
+        <div class="dash-section-title">Study by Plant Habit</div>
+        <div class="dash-grid" id="habit-grid">
+            </div>
+    </div>
+
+    <div class="study-view" id="study-view">
+        <div class="header-controls">
+            <button class="back-btn" onclick="showDashboard()">← Back to Dashboard</button>
+            <div class="stats" id="deck-progress" style="margin:0;">1 / 10</div>
+        </div>
+
+        <div class="flashcard-container" onclick="flipCard()">
+            <div class="flashcard" id="card">
+                <div class="card-face card-front">
+                    <div class="source-toggle" id="source-toggle">
+                        <button id="btn-wf" onclick="setPhotoSource('wf', event)">Wildflower</button>
+                        <button id="btn-inat" class="active" onclick="setPhotoSource('inat', event)">iNaturalist</button>
+                    </div>
+
+                    <div class="badge-container">
+                        <div class="badge" id="front-family">Family</div>
+                        <div class="badge lep-badge" id="front-lep" style="display:none;">🦋 Hosts 0 Species</div>
+                    </div>
+                    
+                    <div class="card-photo-container">
+                        <img id="front-photo" class="card-photo" src="" alt="Plant photo">
+                        <div class="photo-overlay" id="photo-overlay" style="display:none;">
+                            <button class="photo-btn" onclick="prevPhoto(event)">❮</button>
+                            <div class="photo-info">
+                                <div class="photo-counter" id="photo-counter">1/1</div>
+                                <div class="photo-attribution" id="photo-attribution">Source</div>
+                            </div>
+                            <button class="photo-btn" onclick="nextPhoto(event)">❯</button>
+                        </div>
+                    </div>
+
+                    <div class="card-text-container">
+                        <div style="font-size: 0.95rem; font-weight: bold; color: var(--text-muted);">(Click anywhere to flip)</div>
+                    </div>
+                </div>
+                
+                <div class="card-face card-back">
+                    <div class="sci-name" id="back-sci">Scientific Name</div>
+                    <div class="common-name" id="back-common">Common Name</div>
+                    
+                    <div class="enrichment-data">
+                        <div class="trait-section">
+                            <strong>🌿 Characteristics</strong><br>
+                            <span class="trait-label">Habit:</span> <span id="back-habit"></span><br>
+                            <span class="trait-label">Duration:</span> <span id="back-duration"></span><br>
+                            <span class="trait-label">Size:</span> <span id="back-size"></span>
+                        </div>
+                        <div class="trait-section">
+                            <strong>☀️ Growing Conditions</strong><br>
+                            <span class="trait-label">Light:</span> <span id="back-light"></span><br>
+                            <span class="trait-label">Water:</span> <span id="back-water"></span><br>
+                            <span class="trait-label">Soil:</span> <span id="back-soil"></span>
+                        </div>
+                        <div class="trait-section">
+                            <strong>🌸 Bloom Info</strong><br>
+                            <span class="trait-label">Time:</span> <span id="back-bloom"></span><br>
+                            <span class="trait-label">Color:</span> <span id="back-color"></span>
+                        </div>
+                        <div class="trait-section">
+                            <strong>🌎 Ecology</strong><br>
+                            <span class="trait-label">Habitat:</span> <span id="back-habitat"></span><br>
+                            <span class="trait-label" style="display:block; margin-top:5px;">Wildlife Benefit:</span>
+                            <span id="back-wildlife" style="display:block; margin-top:3px;"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="eval-controls" id="eval-controls" style="visibility: hidden;">
+            <button class="eval-btn btn-missed" onclick="markAnswer(false)">❌ Missed It</button>
+            <button class="eval-btn btn-exotic" id="btn-exotic" onclick="toggleExotic(event)">🌴 Flag Exotic</button>
+            <button class="eval-btn btn-gotit" onclick="markAnswer(true)">✅ Knew It</button>
+        </div>
+    </div>
+
+    <script src="data/daily_data.js"></script>
+
+    <script>
+        let masterData = [];
+        let activeDeck = [];
+        let currentIndex = 0;
+        let currentPhotoIndex = 0;
+        let currentSource = 'inat';
+        
+        // Load stats, and ensure the new 'exotic' array exists for existing users
+        let userStats = JSON.parse(localStorage.getItem('nativePlantStats')) || { missed: [], exotic: [] };
+        if (!userStats.exotic) userStats.exotic = []; 
+
+        function initApp() {
+            if (typeof plantData !== 'undefined') {
+                masterData = Object.keys(plantData).map(key => ({
+                    scientific_name: key,
+                    ...plantData[key]
+                }));
+                document.getElementById('total-stats').innerText = `Database contains ${masterData.length} native plants.`;
+                buildDashboard();
+            } else {
+                document.getElementById('total-stats').innerText = "Could not find daily_data.js in the 'data' folder.";
+            }
+        }
+
+        function buildDashboard() {
+            document.getElementById('count-all').innerText = `${masterData.length} cards`;
+            document.getElementById('count-missed').innerText = `${userStats.missed.length} cards to review`;
+            document.getElementById('count-exotic').innerText = `${userStats.exotic.length} flagged`;
+
+            const batchGrid = document.getElementById('batch-grid');
+            batchGrid.innerHTML = '';
+            const totalBatches = Math.ceil(masterData.length / 100);
+            for(let i = 0; i < totalBatches; i++) {
+                let start = i * 100 + 1;
+                let end = Math.min((i + 1) * 100, masterData.length);
+                batchGrid.innerHTML += `
+                    <div class="dash-btn" onclick="startStudy('batch', ${i})">
+                        <span class="icon">🗂️</span>
+                        <span class="title">Batch ${i + 1}</span>
+                        <span class="subtitle">Plants ${start} - ${end}</span>
+                    </div>`;
+            }
+
+            const habitGrid = document.getElementById('habit-grid');
+            habitGrid.innerHTML = '';
+            
+            let habitMap = {};
+            masterData.forEach(p => {
+                if(p.traits && p.traits.habit && p.traits.habit !== "Not Listed") {
+                    let mainHabit = p.traits.habit.split(',')[0].trim();
+                    habitMap[mainHabit] = (habitMap[mainHabit] || 0) + 1;
+                }
+            });
+
+            Object.keys(habitMap).sort().forEach(habit => {
+                habitGrid.innerHTML += `
+                    <div class="dash-btn" onclick="startStudy('habit', '${habit}')">
+                        <span class="icon">🌱</span>
+                        <span class="title">${habit}</span>
+                        <span class="subtitle">${habitMap[habit]} plants</span>
+                    </div>`;
+            });
+        }
+
+        function showDashboard() {
+            document.getElementById('study-view').style.display = 'none';
+            document.getElementById('dashboard-view').style.display = 'block';
+            buildDashboard(); 
+        }
+
+        function startStudy(mode, param) {
+            if (mode === 'all') activeDeck = [...masterData];
+            else if (mode === 'shuffle') activeDeck = [...masterData].sort(() => Math.random() - 0.5);
+            else if (mode === 'missed') activeDeck = masterData.filter(p => userStats.missed.includes(p.scientific_name));
+            else if (mode === 'new') activeDeck = masterData.filter(p => p.date_added); 
+            else if (mode === 'exotic') activeDeck = masterData.filter(p => userStats.exotic.includes(p.scientific_name));
+            else if (mode === 'batch') activeDeck = masterData.slice(param * 100, (param + 1) * 100);
+            else if (mode === 'habit') activeDeck = masterData.filter(p => p.traits && p.traits.habit && p.traits.habit.includes(param));
+
+            if (activeDeck.length === 0) {
+                alert("No cards available in this category right now!");
+                return;
+            }
+
+            currentIndex = 0;
+            document.getElementById('dashboard-view').style.display = 'none';
+            document.getElementById('study-view').style.display = 'flex';
+            loadCard(currentIndex);
+        }
+
+        // --- NEW EXOTIC FLAG LOGIC ---
+        function toggleExotic(event) {
+            if(event) event.stopPropagation(); // Prevents the card from flipping if accidentally clicked
+            const p = activeDeck[currentIndex].scientific_name;
+            const index = userStats.exotic.indexOf(p);
+            
+            if (index > -1) {
+                userStats.exotic.splice(index, 1); // Remove it
+            } else {
+                userStats.exotic.push(p); // Add it
+            }
+            
+            localStorage.setItem('nativePlantStats', JSON.stringify(userStats));
+            updateExoticBtn(); // Instantly visually update the button
+        }
+
+        function updateExoticBtn() {
+            const p = activeDeck[currentIndex].scientific_name;
+            const btn = document.getElementById('btn-exotic');
+            if (userStats.exotic.includes(p)) {
+                btn.classList.add('active');
+                btn.innerHTML = '🌴 Marked Exotic';
+            } else {
+                btn.classList.remove('active');
+                btn.innerHTML = 'Flag as Exotic';
+            }
+        }
+
+        function markAnswer(knewIt) {
+            const p = activeDeck[currentIndex].scientific_name;
+            if (!knewIt && !userStats.missed.includes(p)) {
+                userStats.missed.push(p);
+            } else if (knewIt) {
+                userStats.missed = userStats.missed.filter(name => name !== p);
+            }
+            
+            localStorage.setItem('nativePlantStats', JSON.stringify(userStats));
+
+            if (currentIndex < activeDeck.length - 1) {
+                currentIndex++;
+                loadCard(currentIndex);
+            } else {
+                alert("You've finished this deck!");
+                showDashboard();
+            }
+        }
+
+        function loadCard(index) {
+            const plant = activeDeck[index];
+            currentPhotoIndex = 0; 
+            
+            document.getElementById('deck-progress').innerText = `${index + 1} / ${activeDeck.length}`;
+            document.getElementById('front-family').innerText = plant.family;
+            document.getElementById('back-sci').innerText = plant.scientific_name;
+            document.getElementById('back-common').innerText = plant.common_name;
+            
+            const traits = plant.traits || {};
+            document.getElementById('back-habit').innerText = traits.habit || "Not Listed";
+            document.getElementById('back-duration').innerText = traits.duration || "Not Listed";
+            document.getElementById('back-size').innerText = traits.size_notes || "Not Listed";
+            document.getElementById('back-light').innerText = traits.light_requirement || "Not Listed";
+            document.getElementById('back-water').innerText = traits.water_use || "Not Listed";
+            document.getElementById('back-soil').innerText = traits.soil_moisture || "Not Listed";
+            document.getElementById('back-bloom').innerText = traits.bloom_time || "Not Listed";
+            document.getElementById('back-color').innerText = traits.bloom_color || "Not Listed";
+            document.getElementById('back-habitat').innerText = traits.native_habitat || "Not Listed";
+            document.getElementById('back-wildlife').innerText = traits.wildlife || "Not Listed";
+
+            renderPhoto(); 
+            updateExoticBtn(); // Make sure the button shows the correct state for the new card
+
+            const lepBadge = document.getElementById('front-lep');
+            if (plant.lepidoptera && plant.lepidoptera > 0) {
+                lepBadge.innerText = `🦋 Hosts ${plant.lepidoptera} Species`;
+                lepBadge.style.display = 'block';
+            } else {
+                lepBadge.style.display = 'none';
+            }
+            
+            document.getElementById('card').classList.remove('is-flipped');
+            document.getElementById('eval-controls').style.visibility = 'hidden';
+            document.querySelector('.card-back').scrollTop = 0;
+        }
+
+        function flipCard() { 
+            const card = document.getElementById('card');
+            card.classList.toggle('is-flipped'); 
+            
+            if (card.classList.contains('is-flipped')) {
+                document.getElementById('eval-controls').style.visibility = 'visible';
+            } else {
+                document.getElementById('eval-controls').style.visibility = 'hidden';
+            }
+        }
+
+        function setPhotoSource(source, event) {
+            event.stopPropagation(); 
+            currentSource = source;
+            document.getElementById('btn-wf').classList.toggle('active', source === 'wf');
+            document.getElementById('btn-inat').classList.toggle('active', source === 'inat');
+            currentPhotoIndex = 0; 
+            renderPhoto();
+        }
+
+        function getActivePhotoArray() {
+            const plant = activeDeck[currentIndex];
+            if (currentSource === 'wf') return (plant.traits && plant.traits.wf_photos) ? plant.traits.wf_photos : [];
+            else return plant.photos || [];
+        }
+
+        function renderPhoto() {
+            const imgElement = document.getElementById('front-photo');
+            const overlay = document.getElementById('photo-overlay');
+            const counter = document.getElementById('photo-counter');
+            const attr = document.getElementById('photo-attribution');
+            
+            const activePhotos = getActivePhotoArray();
+            imgElement.onerror = null;
+
+            if (activePhotos.length > 0) {
+                const photo = activePhotos[currentPhotoIndex];
+                if (photo && photo.url) {
+                    imgElement.onerror = function() {
+                        this.src = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Crect width='100%25' height='100%25' fill='%23e9ece8'/%3E%3Ctext x='50%25' y='50%25' fill='%235e705c' font-family='sans-serif' font-size='16' text-anchor='middle' dominant-baseline='middle'%3EPhoto link broken at source%3C/text%3E%3C/svg%3E";
+                        this.onerror = null; 
+                    };
+
+                    imgElement.src = photo.url;
+                    imgElement.style.display = 'block';
+                    counter.innerText = `${currentPhotoIndex + 1} / ${activePhotos.length}`;
+                    attr.innerText = photo.attribution || "Unknown Source";
+                    overlay.style.display = 'flex';
+                    return; 
+                }
+            }
+            
+            imgElement.src = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Crect width='100%25' height='100%25' fill='%23e9ece8'/%3E%3Ctext x='50%25' y='50%25' fill='%235e705c' font-family='sans-serif' font-size='14' text-anchor='middle' dominant-baseline='middle'%3ENo photos from this source%3C/text%3E%3C/svg%3E";
+            imgElement.style.display = 'block';
+            overlay.style.display = 'none';
+        }
+
+        function nextPhoto(event) {
+            event.stopPropagation(); 
+            const activePhotos = getActivePhotoArray();
+            if (activePhotos.length > 1) {
+                currentPhotoIndex = (currentPhotoIndex + 1) % activePhotos.length;
+                renderPhoto();
+            }
+        }
+
+        function prevPhoto(event) {
+            event.stopPropagation(); 
+            const activePhotos = getActivePhotoArray();
+            if (activePhotos.length > 1) {
+                currentPhotoIndex = (currentPhotoIndex - 1 + activePhotos.length) % activePhotos.length;
+                renderPhoto();
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (document.getElementById('study-view').style.display !== 'flex') return;
+            if (e.code === 'Space') { e.preventDefault(); flipCard(); }
+        });
+
+        window.onload = initApp;
+    </script>
+</body>
+</html>
