@@ -5,474 +5,113 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ecotone Native Plant Dashboard</title>
     <style>
-        :root {
-            --bg-color: #f0f4f1; --card-bg: #ffffff; --text-main: #2b3a2f; 
-            --text-muted: #5c7061; --accent-green: #3a6346; --accent-light: #e8f0ea;
-            --border-color: #c9d6cc; --danger: #d9534f; --warning: #f59f00;
-        }
-        * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+        :root { --bg-color: #f0f4f1; --card-bg: #ffffff; --text-main: #2b3a2f; --text-muted: #5c7061; --accent-green: #3a6346; --accent-light: #e8f0ea; --border-color: #c9d6cc; --danger: #d9534f; --warning: #f59f00; }
+        * { box-sizing: border-box; font-family: system-ui, sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 1rem; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
-        
-        h1 { color: var(--accent-green); margin-bottom: 0.2rem; text-align: center; font-size: 2rem; }
-        .stats-header { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 2rem; text-align: center; }
-        
-        /* --- DASHBOARD STYLES --- */
-        .dashboard-view { width: 100%; max-width: 900px; display: block; }
-        .section-title { font-size: 1.2rem; font-weight: 600; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem; margin: 2rem 0 1rem 0; color: var(--text-main); }
+        h1 { color: var(--accent-green); margin-bottom: 2rem; font-size: 2rem; }
+        .dashboard-view { width: 100%; max-width: 900px; }
+        .section-title { font-size: 1.2rem; font-weight: 600; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem; margin: 2rem 0 1rem 0; }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; }
-        
-        .dash-btn { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem 1rem; text-align: center; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 6px rgba(0,0,0,0.02); display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .dash-btn:hover { border-color: var(--accent-green); transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.08); background: var(--accent-light); }
-        .dash-btn .icon { font-size: 2rem; margin-bottom: 0.5rem; }
-        .dash-btn .title { font-weight: bold; font-size: 1rem; }
-        .dash-btn .subtitle { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.3rem; }
-
-        /* --- STUDY VIEW STYLES --- */
+        .dash-btn { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem 1rem; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; }
+        .dash-btn:hover { border-color: var(--accent-green); background: var(--accent-light); }
         .study-view { width: 100%; max-width: 550px; display: none; flex-direction: column; }
-        .header-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-        .back-btn { background: white; border: 1px solid var(--border-color); color: var(--text-main); padding: 0.5rem 1rem; border-radius: 20px; cursor: pointer; font-weight: 600; transition: 0.2s; }
-        .back-btn:hover { background: var(--accent-light); border-color: var(--accent-green); }
-        .progress-text { font-weight: bold; color: var(--text-muted); }
-        
-        .progress-bar-container { width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; margin-bottom: 1.5rem; overflow: hidden; }
-        .progress-fill { height: 100%; background: var(--accent-green); width: 0%; transition: width 0.3s ease; }
-
-        /* --- FLASHCARD --- */
         .flashcard-container { perspective: 1000px; height: 550px; width: 100%; position: relative; margin-bottom: 1rem; }
-        .flashcard { width: 100%; height: 100%; position: relative; transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1); transform-style: preserve-3d; cursor: pointer; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .flashcard { width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; cursor: pointer; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
         .flashcard.is-flipped { transform: rotateY(180deg); }
-        
-        .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; background: var(--card-bg); border-radius: 16px; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border-color); }
-        
-        /* Front Face */
-        .card-front { background: #e9ece8; }
-        .photo-wrapper { width: 100%; height: 100%; position: relative; }
-        .card-photo { width: 100%; height: 100%; object-fit: cover; }
-        .flip-hint { position: absolute; bottom: 15px; left: 0; width: 100%; text-align: center; color: white; font-weight: bold; text-shadow: 0px 2px 4px rgba(0,0,0,0.8); font-size: 1.1rem; pointer-events: none; }
-        
-        .source-toggle { position: absolute; top: 15px; left: 15px; display: flex; background: rgba(0,0,0,0.6); border-radius: 20px; overflow: hidden; backdrop-filter: blur(4px); }
-        .source-toggle button { background: transparent; border: none; color: rgba(255,255,255,0.7); padding: 6px 12px; font-size: 0.8rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .source-toggle button.active { background: white; color: var(--text-main); }
-        
-        .photo-nav { position: absolute; bottom: 0; left: 0; width: 100%; padding: 15px; display: flex; justify-content: space-between; align-items: flex-end; background: linear-gradient(transparent, rgba(0,0,0,0.7)); }
-        .nav-btn { background: rgba(255,255,255,0.3); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; backdrop-filter: blur(4px); transition: 0.2s; }
-        .nav-btn:hover { background: rgba(255,255,255,0.6); }
-        .photo-meta { text-align: center; color: white; text-shadow: 1px 1px 3px black; flex-grow: 1; }
-
-        /* Back Face */
+        .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; background: white; border-radius: 16px; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border-color); }
         .card-back { transform: rotateY(180deg); padding: 1.5rem; overflow-y: auto; background: #fafbfc; }
-        .card-back::-webkit-scrollbar { width: 6px; }
-        .card-back::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
-        
-        .header-data { text-align: center; padding-bottom: 1rem; border-bottom: 2px solid var(--border-color); margin-bottom: 1rem; }
-        .sci-name { font-size: 1.8rem; font-style: italic; font-weight: 700; color: var(--accent-green); margin: 0 0 0.2rem 0; }
-        .common-name { font-size: 1.2rem; font-weight: 600; color: var(--text-main); margin: 0; }
-        
-        .badge-row { display: flex; justify-content: center; gap: 10px; margin-top: 10px; }
-        .badge { padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; color: white; }
-        .badge-family { background: #6c757d; }
-        .badge-lep { background: #d4a373; }
-
-        .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.9rem; }
-        .data-section { background: white; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); }
-        .data-section strong { display: block; color: var(--accent-green); margin-bottom: 4px; font-size: 0.95rem; border-bottom: 1px solid #eee; padding-bottom: 2px; }
-        .trait-row { margin-bottom: 4px; line-height: 1.4; color: var(--text-muted); }
-        .trait-label { font-weight: 600; color: var(--text-main); }
-        .full-width { grid-column: 1 / -1; }
-
-        /* --- DECK NAVIGATION (Always visible) --- */
-        .deck-nav { display: flex; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
-        .deck-btn { flex: 1; padding: 1rem; background: white; border: 2px solid var(--border-color); border-radius: 12px; font-weight: bold; cursor: pointer; color: var(--text-main); transition: 0.2s; }
-        .deck-btn:hover { background: var(--accent-light); border-color: var(--accent-green); }
-
-        /* --- EVALUATION CONTROLS (Hidden until flipped) --- */
-        .eval-controls { display: flex; gap: 0.5rem; transition: opacity 0.3s ease, transform 0.3s ease; opacity: 0; transform: translateY(10px); pointer-events: none; }
+        .eval-controls { display: flex; gap: 0.5rem; opacity: 0; transform: translateY(10px); transition: 0.3s; pointer-events: none; }
         .eval-controls.visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
-        
-        .eval-btn { flex: 1; padding: 1rem 0.5rem; border-radius: 12px; font-weight: bold; font-size: 1rem; cursor: pointer; border: none; color: white; transition: 0.2s; }
-        .btn-missed { background: var(--danger); }
-        .btn-missed:hover { filter: brightness(0.9); }
-        .btn-exotic { background: #868e96; }
-        .btn-exotic.active { background: var(--warning); color: #212529; }
-        .btn-gotit { background: var(--accent-green); }
-        .btn-gotit:hover { filter: brightness(0.9); }
-
-        @media (max-width: 600px) {
-            .data-grid { grid-template-columns: 1fr; }
-            .flashcard-container { height: 600px; }
-            .deck-btn { padding: 0.8rem; }
-        }
+        .eval-btn { flex: 1; padding: 1rem; border-radius: 12px; font-weight: bold; cursor: pointer; border: none; color: white; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 2rem; border-radius: 12px; width: 90%; max-width: 500px; }
     </style>
 </head>
 <body>
-
     <h1>Ecotone Dashboard</h1>
-    <div class="stats-header" id="total-stats">Loading database...</div>
-
-    <div class="dashboard-view" id="dashboard-view">
-        <div class="section-title">Core Study Modes</div>
+    <div id="dashboard-view" class="dashboard-view">
+        <div class="section-title">Continue Study</div>
+        <div class="grid"><div class="dash-btn" id="resume-btn" style="display:none; border-color: var(--accent-green);" onclick="resumeSession()"><span class="title">Resume Session</span><span class="subtitle" id="resume-subtitle"></span></div></div>
+        <div class="section-title">Study Modes</div>
         <div class="grid">
-            <div class="dash-btn" onclick="startStudy('all')">
-                <span class="icon">📚</span>
-                <span class="title">Study All Plants</span>
-                <span class="subtitle" id="count-all">0 cards</span>
-            </div>
-            <div class="dash-btn" onclick="startStudy('shuffle')">
-                <span class="icon">🔀</span>
-                <span class="title">Shuffle Deck</span>
-                <span class="subtitle">Randomized order</span>
-            </div>
-            <div class="dash-btn" onclick="startStudy('missed')">
-                <span class="icon">🎯</span>
-                <span class="title">Review Missed</span>
-                <span class="subtitle" id="count-missed">0 cards</span>
-            </div>
-            <div class="dash-btn" onclick="startStudy('exotic')">
-                <span class="icon">🌴</span>
-                <span class="title">Exotic Collection</span>
-                <span class="subtitle" id="count-exotic">0 flagged</span>
-            </div>
+            <div class="dash-btn" onclick="startStudy('smart')"><span>🧠</span><span class="title">Smart Review</span></div>
+            <div class="dash-btn" onclick="startStudy('all')"><span>📚</span><span class="title">All Plants</span></div>
         </div>
-
-        <div class="section-title">Study by Batches (100)</div>
-        <div class="grid" id="batch-grid"></div>
-
-        <div class="section-title">Study by Plant Habit</div>
+        <div class="section-title">Study by Habit</div>
         <div class="grid" id="habit-grid"></div>
+        <div style="text-align:center; margin-top:2rem;"><button onclick="openSyncModal()">💾 Sync/Backup Progress</button></div>
     </div>
 
-    <div class="study-view" id="study-view">
-        <div class="header-controls">
-            <button class="back-btn" onclick="showDashboard()">← Back to Menu</button>
-            <div class="progress-text" id="deck-progress">1 / 10</div>
-        </div>
-        <div class="progress-bar-container">
-            <div class="progress-fill" id="progress-bar"></div>
-        </div>
-
+    <div id="study-view" class="study-view">
+        <button onclick="showDashboard()">← Menu</button>
         <div class="flashcard-container">
             <div class="flashcard" id="card" onclick="flipCard()">
-                
-                <div class="card-face card-front">
-                    <div class="source-toggle" onclick="event.stopPropagation()">
-                        <button id="btn-wf" onclick="setPhotoSource('wf')">Wildflower</button>
-                        <button id="btn-inat" class="active" onclick="setPhotoSource('inat')">iNaturalist</button>
-                    </div>
-                    
-                    <div class="photo-wrapper">
-                        <img id="front-photo" class="card-photo" src="" alt="Plant photo">
-                        <div class="flip-hint">(Tap anywhere to flip)</div>
-                        <div class="photo-nav" onclick="event.stopPropagation()">
-                            <button class="nav-btn" onclick="prevPhoto()">❮</button>
-                            <div class="photo-meta">
-                                <div id="photo-counter" style="font-weight:bold;">1/1</div>
-                                <div id="photo-attribution" style="font-size:0.75rem;">Source</div>
-                            </div>
-                            <button class="nav-btn" onclick="nextPhoto()">❯</button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="card-face card-back">
-                    <div class="header-data">
-                        <h2 class="sci-name" id="back-sci">Scientific Name</h2>
-                        <h3 class="common-name" id="back-common">Common Name</h3>
-                        <div class="badge-row">
-                            <span class="badge badge-family" id="back-family">Family</span>
-                            <span class="badge badge-lep" id="back-lep">🦋 Hosts 0 Species</span>
-                        </div>
-                    </div>
-                    
-                    <div class="data-grid">
-                        <div class="data-section">
-                            <strong>🌿 Characteristics</strong>
-                            <div class="trait-row"><span class="trait-label">Habit:</span> <span id="back-habit"></span></div>
-                            <div class="trait-row"><span class="trait-label">Duration:</span> <span id="back-duration"></span></div>
-                            <div class="trait-row"><span class="trait-label">Size:</span> <span id="back-size"></span></div>
-                        </div>
-                        <div class="data-section">
-                            <strong>🌸 Bloom Info</strong>
-                            <div class="trait-row"><span class="trait-label">Time:</span> <span id="back-bloom"></span></div>
-                            <div class="trait-row"><span class="trait-label">Color:</span> <span id="back-color"></span></div>
-                        </div>
-                        <div class="data-section full-width">
-                            <strong>☀️ Growing Conditions</strong>
-                            <div class="trait-row"><span class="trait-label">Light:</span> <span id="back-light"></span></div>
-                            <div class="trait-row"><span class="trait-label">Water:</span> <span id="back-water"></span></div>
-                            <div class="trait-row"><span class="trait-label">Soil:</span> <span id="back-soil"></span></div>
-                        </div>
-                        <div class="data-section full-width">
-                            <strong>🌎 Ecology & Habitat</strong>
-                            <div class="trait-row"><span class="trait-label">Habitat:</span> <span id="back-habitat"></span></div>
-                            <div class="trait-row" style="margin-top:8px;"><span class="trait-label">Wildlife Benefit:</span><br><span id="back-wildlife"></span></div>
-                        </div>
-                    </div>
+                <div class="card-face card-front"><img id="front-photo" style="width:100%; height:100%; object-fit:cover;"></div>
+                <div class="card-face card-back" id="back-content">
+                    <h2 id="back-sci" style="font-style:italic;"></h2>
+                    <h3 id="back-common"></h3>
+                    <div id="details"></div>
                 </div>
             </div>
         </div>
-
-        <div class="deck-nav">
-            <button class="deck-btn" onclick="navigateDeck(-1)">❮ Previous Card</button>
-            <button class="deck-btn" onclick="navigateDeck(1)">Next Card ❯</button>
-        </div>
-
         <div class="eval-controls" id="eval-controls">
-            <button class="eval-btn btn-missed" onclick="gradeCard(false)">❌ Missed It</button>
-            <button class="eval-btn btn-exotic" id="btn-exotic" onclick="toggleExotic()">🌴 Flag Exotic</button>
-            <button class="eval-btn btn-gotit" onclick="gradeCard(true)">✅ Knew It</button>
+            <button class="eval-btn" style="background:var(--danger)" onclick="gradeCard(false)">❌ Missed</button>
+            <button class="eval-btn" style="background:var(--accent-green)" onclick="gradeCard(true)">✅ Knew It</button>
         </div>
     </div>
 
-    <script src="data/daily_data.js"></script>
+    <div id="sync-modal" class="modal"><div class="modal-content"><textarea id="sync-data" style="width:100%; height:150px;"></textarea><button onclick="loadSyncData()">Load Data</button></div></div>
 
+    <script src="data/daily_data.js"></script>
     <script>
-        let masterData = [];
-        let activeDeck = [];
-        let currentIndex = 0;
-        let currentPhotoIndex = 0;
-        let currentSource = 'inat';
-        
-        let userStats = JSON.parse(localStorage.getItem('nativePlantStats')) || { missed: [], exotic: [] };
-        if (!userStats.exotic) userStats.exotic = []; 
+        let masterData = [], activeDeck = [], currentIndex = 0;
+        let userStats = JSON.parse(localStorage.getItem('nativePlantStats')) || { mastery: {} };
 
         function initApp() {
-            if (typeof plantData !== 'undefined') {
-                masterData = Object.keys(plantData).map(key => ({ scientific_name: key, ...plantData[key] }));
-                document.getElementById('total-stats').innerText = `Database contains ${masterData.length} unique native plants.`;
-                buildDashboard();
-            } else {
-                document.getElementById('total-stats').innerText = "Database connection error. Could not read data/daily_data.js";
-            }
+            masterData = Object.keys(plantData).map(k => ({ scientific_name: k, ...plantData[k] }));
+            buildDashboard();
+            checkResume();
         }
-
         function buildDashboard() {
-            document.getElementById('count-all').innerText = `${masterData.length} cards`;
-            document.getElementById('count-missed').innerText = `${userStats.missed.length} cards`;
-            document.getElementById('count-exotic').innerText = `${userStats.exotic.length} flagged`;
-
-            const batchGrid = document.getElementById('batch-grid');
-            batchGrid.innerHTML = '';
-            const totalBatches = Math.ceil(masterData.length / 100);
-            for(let i = 0; i < totalBatches; i++) {
-                let start = i * 100 + 1;
-                let end = Math.min((i + 1) * 100, masterData.length);
-                batchGrid.innerHTML += `
-                    <div class="dash-btn" onclick="startStudy('batch', ${i})">
-                        <span class="icon">🗂️</span>
-                        <span class="title">Batch ${i + 1}</span>
-                        <span class="subtitle">Plants ${start} - ${end}</span>
-                    </div>`;
-            }
-
-            const habitGrid = document.getElementById('habit-grid');
-            habitGrid.innerHTML = '';
-            let habitMap = {};
-            masterData.forEach(p => {
-                if(p.traits?.habit && p.traits.habit !== "Not Listed") {
-                    let mainHabit = p.traits.habit.split(',')[0].trim();
-                    habitMap[mainHabit] = (habitMap[mainHabit] || 0) + 1;
-                }
-            });
-
-            Object.keys(habitMap).sort().forEach(habit => {
-                habitGrid.innerHTML += `
-                    <div class="dash-btn" onclick="startStudy('habit', '${habit}')">
-                        <span class="icon">🌱</span>
-                        <span class="title">${habit}</span>
-                        <span class="subtitle">${habitMap[habit]} plants</span>
-                    </div>`;
-            });
+            const grid = document.getElementById('habit-grid');
+            let habits = [...new Set(masterData.map(p => p.traits?.habit?.split(',')[0].trim()).filter(Boolean))];
+            habits.forEach(h => grid.innerHTML += `<div class="dash-btn" onclick="startStudy('habit', '${h}')">${h}</div>`);
         }
-
-        function showDashboard() {
-            document.getElementById('study-view').style.display = 'none';
-            document.getElementById('dashboard-view').style.display = 'block';
-            buildDashboard(); 
-        }
-
         function startStudy(mode, param) {
-            if (mode === 'all') activeDeck = [...masterData];
-            else if (mode === 'shuffle') activeDeck = [...masterData].sort(() => Math.random() - 0.5);
-            else if (mode === 'missed') activeDeck = masterData.filter(p => userStats.missed.includes(p.scientific_name));
-            else if (mode === 'exotic') activeDeck = masterData.filter(p => userStats.exotic.includes(p.scientific_name));
-            else if (mode === 'batch') activeDeck = masterData.slice(param * 100, (param + 1) * 100);
-            else if (mode === 'habit') activeDeck = masterData.filter(p => p.traits?.habit?.includes(param));
-
-            if (activeDeck.length === 0) {
-                alert("No cards available in this category right now!");
-                return;
-            }
-
+            if (mode === 'smart') activeDeck = [...masterData].sort((a,b) => (userStats.mastery[a.scientific_name]||0) - (userStats.mastery[b.scientific_name]||0)).slice(0, 50);
+            else if (mode === 'all') activeDeck = [...masterData];
+            else activeDeck = masterData.filter(p => p.traits?.habit?.includes(param));
             currentIndex = 0;
+            localStorage.setItem('lastSession', JSON.stringify({ mode, param, index: 0 }));
             document.getElementById('dashboard-view').style.display = 'none';
             document.getElementById('study-view').style.display = 'flex';
             loadCard(currentIndex);
         }
-
         function loadCard(index) {
-            const plant = activeDeck[index];
-            currentPhotoIndex = 0; 
-            
-            document.getElementById('deck-progress').innerText = `${index + 1} / ${activeDeck.length}`;
-            document.getElementById('progress-bar').style.width = `${((index + 1) / activeDeck.length) * 100}%`;
-            
-            // Back Data
-            document.getElementById('back-sci').innerText = plant.scientific_name;
-            document.getElementById('back-common').innerText = plant.common_name || 'No Common Name';
-            document.getElementById('back-family').innerText = plant.family || 'Unknown Family';
-            
-            const lepBadge = document.getElementById('back-lep');
-            if (plant.lepidoptera && plant.lepidoptera > 0) {
-                lepBadge.innerText = `🦋 Hosts ${plant.lepidoptera} Species`;
-                lepBadge.style.display = 'inline-block';
-            } else {
-                lepBadge.style.display = 'none';
-            }
-            
-            const t = plant.traits || {};
-            const safe = (val) => (val && val !== "Not Listed") ? val : "N/A";
-            
-            document.getElementById('back-habit').innerText = safe(t.habit);
-            document.getElementById('back-duration').innerText = safe(t.duration);
-            document.getElementById('back-size').innerText = safe(t.size_notes);
-            document.getElementById('back-light').innerText = safe(t.light_requirement);
-            document.getElementById('back-water').innerText = safe(t.water_use);
-            document.getElementById('back-soil').innerText = safe(t.soil_moisture);
-            document.getElementById('back-bloom').innerText = safe(t.bloom_time);
-            document.getElementById('back-color').innerText = safe(t.bloom_color);
-            document.getElementById('back-habitat').innerText = safe(t.native_habitat);
-            document.getElementById('back-wildlife').innerText = safe(t.wildlife);
-
-            renderPhoto(); 
-            
-            const btnExotic = document.getElementById('btn-exotic');
-            if (userStats.exotic.includes(plant.scientific_name)) {
-                btnExotic.classList.add('active');
-                btnExotic.innerHTML = '🌴 Marked Exotic';
-            } else {
-                btnExotic.classList.remove('active');
-                btnExotic.innerHTML = 'Flag Exotic';
-            }
-            
-            // Reset state
+            const p = activeDeck[index];
+            document.getElementById('front-photo').src = p.photos[0]?.url || '';
+            document.getElementById('back-sci').innerText = p.scientific_name;
+            document.getElementById('back-common').innerText = p.common_name;
+            const t = p.traits || {};
+            document.getElementById('details').innerHTML = `Family: ${p.family}<br>Hosts: ${p.lepidoptera||0}<br>Habit: ${t.habit||'N/A'}<br>Bloom: ${t.bloom_time||'N/A'}<br>Water: ${t.water_use||'N/A'}<br>Habitat: ${t.native_habitat||'N/A'}`;
             document.getElementById('card').classList.remove('is-flipped');
             document.getElementById('eval-controls').classList.remove('visible');
-            document.querySelector('.card-back').scrollTop = 0;
         }
-
-        function flipCard() { 
-            const card = document.getElementById('card');
-            card.classList.toggle('is-flipped'); 
-            
-            if (card.classList.contains('is-flipped')) {
-                document.getElementById('eval-controls').classList.add('visible');
-            } else {
-                document.getElementById('eval-controls').classList.remove('visible');
-            }
-        }
-
-        function navigateDeck(dir) {
-            let newIndex = currentIndex + dir;
-            if (newIndex >= 0 && newIndex < activeDeck.length) {
-                currentIndex = newIndex;
-                loadCard(currentIndex);
-            }
-        }
-
+        function flipCard() { document.getElementById('card').classList.toggle('is-flipped'); document.getElementById('eval-controls').classList.add('visible'); }
         function gradeCard(knewIt) {
             const p = activeDeck[currentIndex].scientific_name;
-            if (!knewIt && !userStats.missed.includes(p)) {
-                userStats.missed.push(p);
-            } else if (knewIt) {
-                userStats.missed = userStats.missed.filter(name => name !== p);
-            }
+            userStats.mastery[p] = (userStats.mastery[p] || 0) + (knewIt ? 1 : -1);
             localStorage.setItem('nativePlantStats', JSON.stringify(userStats));
-
-            if (currentIndex < activeDeck.length - 1) {
-                navigateDeck(1);
-            } else {
-                alert("You've finished this deck!");
-                showDashboard();
-            }
+            let s = JSON.parse(localStorage.getItem('lastSession'));
+            s.index = ++currentIndex;
+            localStorage.setItem('lastSession', JSON.stringify(s));
+            currentIndex < activeDeck.length ? loadCard(currentIndex) : showDashboard();
         }
-
-        function toggleExotic() {
-            const p = activeDeck[currentIndex].scientific_name;
-            const index = userStats.exotic.indexOf(p);
-            if (index > -1) userStats.exotic.splice(index, 1);
-            else userStats.exotic.push(p);
-            
-            localStorage.setItem('nativePlantStats', JSON.stringify(userStats));
-            
-            const btn = document.getElementById('btn-exotic');
-            if (userStats.exotic.includes(p)) {
-                btn.classList.add('active');
-                btn.innerHTML = '🌴 Marked Exotic';
-            } else {
-                btn.classList.remove('active');
-                btn.innerHTML = 'Flag Exotic';
-            }
-        }
-
-        // --- Photo Handling ---
-        function setPhotoSource(source) {
-            currentSource = source;
-            document.getElementById('btn-wf').classList.toggle('active', source === 'wf');
-            document.getElementById('btn-inat').classList.toggle('active', source === 'inat');
-            currentPhotoIndex = 0; 
-            renderPhoto();
-        }
-
-        function getActivePhotos() {
-            const plant = activeDeck[currentIndex];
-            if (currentSource === 'wf') return plant.traits?.wf_photos || [];
-            return plant.photos || [];
-        }
-
-        function renderPhoto() {
-            const imgElement = document.getElementById('front-photo');
-            const photos = getActivePhotos();
-            
-            imgElement.onerror = null;
-
-            if (photos.length > 0 && photos[currentPhotoIndex]?.url) {
-                imgElement.onerror = function() {
-                    this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Crect width='100%25' height='100%25' fill='%23e9ece8'/%3E%3Ctext x='50%25' y='50%25' fill='%235c7061' font-family='sans-serif' font-size='16' text-anchor='middle' dominant-baseline='middle'%3EPhoto link broken%3C/text%3E%3C/svg%3E";
-                    this.onerror = null; 
-                };
-                imgElement.src = photos[currentPhotoIndex].url;
-                document.getElementById('photo-counter').innerText = `${currentPhotoIndex + 1} / ${photos.length}`;
-                document.getElementById('photo-attribution').innerText = photos[currentPhotoIndex].attribution || "Unknown Source";
-            } else {
-                imgElement.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Crect width='100%25' height='100%25' fill='%23e9ece8'/%3E%3Ctext x='50%25' y='50%25' fill='%235c7061' font-family='sans-serif' font-size='14' text-anchor='middle' dominant-baseline='middle'%3ENo photos available%3C/text%3E%3C/svg%3E";
-                document.getElementById('photo-counter').innerText = `0 / 0`;
-                document.getElementById('photo-attribution').innerText = "";
-            }
-        }
-
-        function nextPhoto() {
-            const photos = getActivePhotos();
-            if (photos.length > 1) {
-                currentPhotoIndex = (currentPhotoIndex + 1) % photos.length;
-                renderPhoto();
-            }
-        }
-
-        function prevPhoto() {
-            const photos = getActivePhotos();
-            if (photos.length > 1) {
-                currentPhotoIndex = (currentPhotoIndex - 1 + photos.length) % photos.length;
-                renderPhoto();
-            }
-        }
-
-        document.addEventListener('keydown', (e) => {
-            if (document.getElementById('study-view').style.display !== 'flex') return;
-            if (e.code === 'Space') { e.preventDefault(); flipCard(); }
-            else if (e.code === 'ArrowRight') { e.preventDefault(); navigateDeck(1); }
-            else if (e.code === 'ArrowLeft') { e.preventDefault(); navigateDeck(-1); }
-        });
-
+        function checkResume() { let s = localStorage.getItem('lastSession'); if(s) { document.getElementById('resume-btn').style.display = 'flex'; document.getElementById('resume-subtitle').innerText = `Card ${JSON.parse(s).index + 1}`; } }
+        function resumeSession() { let s = JSON.parse(localStorage.getItem('lastSession')); startStudy(s.mode, s.param); setTimeout(() => loadCard(s.index), 100); }
+        function showDashboard() { document.getElementById('study-view').style.display = 'none'; document.getElementById('dashboard-view').style.display = 'block'; }
+        function openSyncModal() { document.getElementById('sync-modal').style.display = 'flex'; document.getElementById('sync-data').value = btoa(JSON.stringify(userStats)); }
+        function loadSyncData() { userStats = JSON.parse(atob(document.getElementById('sync-data').value)); localStorage.setItem('nativePlantStats', JSON.stringify(userStats)); location.reload(); }
         window.onload = initApp;
     </script>
 </body>
