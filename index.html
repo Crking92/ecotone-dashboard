@@ -32,11 +32,15 @@
     <div id="dashboard-view" class="dashboard-view">
         <div class="section-title">Continue Study</div>
         <div class="grid"><div class="dash-btn" id="resume-btn" style="display:none; border-color: var(--accent-green);" onclick="resumeSession()"><span class="title">Resume Session</span><span class="subtitle" id="resume-subtitle"></span></div></div>
+        
         <div class="section-title">Study Modes</div>
         <div class="grid">
             <div class="dash-btn" onclick="startStudy('smart')"><span>🧠</span><span class="title">Smart Review</span></div>
             <div class="dash-btn" onclick="startStudy('all')"><span>📚</span><span class="title">All Plants</span></div>
+            <div class="dash-btn" onclick="startStudy('missed')"><span>🎯</span><span class="title">Review Missed</span></div>
+            <div class="dash-btn" onclick="startStudy('exotic')"><span>🌴</span><span class="title">Exotic Flags</span></div>
         </div>
+        
         <div class="section-title">Study by Habit</div>
         <div class="grid" id="habit-grid"></div>
         <div style="text-align:center; margin-top:2rem;"><button onclick="openSyncModal()">💾 Sync/Backup Progress</button></div>
@@ -65,7 +69,7 @@
     <script src="data/daily_data.js"></script>
     <script>
         let masterData = [], activeDeck = [], currentIndex = 0;
-        let userStats = JSON.parse(localStorage.getItem('nativePlantStats')) || { mastery: {} };
+        let userStats = JSON.parse(localStorage.getItem('nativePlantStats')) || { mastery: {}, missed: [], exotic: [] };
 
         function initApp() {
             masterData = Object.keys(plantData).map(k => ({ scientific_name: k, ...plantData[k] }));
@@ -80,6 +84,8 @@
         function startStudy(mode, param) {
             if (mode === 'smart') activeDeck = [...masterData].sort((a,b) => (userStats.mastery[a.scientific_name]||0) - (userStats.mastery[b.scientific_name]||0)).slice(0, 50);
             else if (mode === 'all') activeDeck = [...masterData];
+            else if (mode === 'missed') activeDeck = masterData.filter(p => userStats.missed.includes(p.scientific_name));
+            else if (mode === 'exotic') activeDeck = masterData.filter(p => userStats.exotic.includes(p.scientific_name));
             else activeDeck = masterData.filter(p => p.traits?.habit?.includes(param));
             currentIndex = 0;
             localStorage.setItem('lastSession', JSON.stringify({ mode, param, index: 0 }));
@@ -101,6 +107,8 @@
         function gradeCard(knewIt) {
             const p = activeDeck[currentIndex].scientific_name;
             userStats.mastery[p] = (userStats.mastery[p] || 0) + (knewIt ? 1 : -1);
+            if (!knewIt && !userStats.missed.includes(p)) userStats.missed.push(p);
+            else if (knewIt) userStats.missed = userStats.missed.filter(n => n !== p);
             localStorage.setItem('nativePlantStats', JSON.stringify(userStats));
             let s = JSON.parse(localStorage.getItem('lastSession'));
             s.index = ++currentIndex;
